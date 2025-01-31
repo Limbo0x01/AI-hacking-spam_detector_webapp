@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMS Spam Detector</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-bg: #ffffff;
+            --secondary-bg: #f8f9fa;
+            --text-color: #2d3748;
+            --border-color: #e2e8f0;
+            --gradient-start: #667eea;
+            --gradient-end: #764ba2;
+        }
+
+        [data-theme="dark"] {
+            --primary-bg: #1a202c;
+            --secondary-bg: #2d3748;
+            --text-color: #f7fafc;
+            --border-color: #4a5568;
+            --gradient-start: #2d3748;
+            --gradient-end: #1a202c;
+        }
+
+        [dir="rtl"] .container {
+            text-align: right;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            background: var(--primary-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 600px;
+            animation: fadeIn 0.8s ease-out;
+            transition: all 0.3s ease;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .mode-toggle, .lang-toggle {
+            background: none;
+            border: 2px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        .mode-toggle:hover, .lang-toggle:hover {
+            background: var(--border-color);
+        }
+
+        h1 {
+            color: var(--text-color);
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 2.5rem;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            resize: vertical;
+            min-height: 120px;
+            font-size: 1rem;
+            background: var(--secondary-bg);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--gradient-start);
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            color: #ffffff;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        #result {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .confidence-bar {
+            height: 10px;
+            background: var(--border-color);
+            border-radius: 5px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: var(--gradient-start);
+            width: 0;
+            transition: width 1s ease-out;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls">
+            <button class="mode-toggle">
+                <i class="fas fa-moon"></i>
+                <span class="mode-text">Dark Mode</span>
+            </button>
+            <button class="lang-toggle">
+                <span class="lang-text">عربي</span>
+            </button>
+        </div>
+        <h1 class="title"><i class="fas fa-shield-alt"></i> <span>SMS Spam Shield</span></h1>
+        <form id="spam-form">
+            <textarea name="message" required></textarea>
+            <button type="submit" class="submit-btn">
+                <span class="button-text">Analyze Message</span>
+                <span class="loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </span>
+            </button>
+        </form>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const translations = {
+            en: {
+                title: 'SMS Spam Shield',
+                placeholder: 'Type or paste your message here...',
+                analyze: 'Analyze Message',
+                darkMode: 'Dark Mode',
+                lightMode: 'Light Mode',
+                prediction: 'Prediction',
+                confidence: 'Confidence',
+                spam: 'SPAM',
+                ham: 'HAM',
+                error: 'Error',
+                switchToArabic: 'عربي'
+            },
+            ar: {
+                title: 'درع الرسائل المزعجة',
+                placeholder: 'اكتب أو الصق رسالتك هنا...',
+                analyze: 'تحليل الرسالة',
+                darkMode: 'الوضع الليلي',
+                lightMode: 'الوضع النهاري',
+                prediction: 'التنبؤ',
+                confidence: 'الثقة',
+                spam: 'مزعج',
+                ham: 'آمن',
+                error: 'خطأ',
+                switchToEnglish: 'English'
+            }
+        };
+
+        let currentLang = 'en';
+        let isDarkMode = false;
+
+        function updateLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            
+            // Update text content
+            $('.title span').text(translations[lang].title);
+            $('textarea').attr('placeholder', translations[lang].placeholder);
+            $('.button-text').text(translations[lang].analyze);
+            $('.mode-text').text(translations[lang][isDarkMode ? 'lightMode' : 'darkMode']);
+            $('.lang-text').text(translations[lang][lang === 'en' ? 'switchToArabic' : 'switchToEnglish']);
+        }
+
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+            $('.mode-text').text(translations[currentLang][isDarkMode ? 'lightMode' : 'darkMode']);
+        }
+
+        $(document).ready(function() {
+            // Initial language setup
+            updateLanguage('en');
+
+            // Language toggle
+            $('.lang-toggle').click(function() {
+                updateLanguage(currentLang === 'en' ? 'ar' : 'en');
+            });
+
+            // Dark mode toggle
+            $('.mode-toggle').click(toggleDarkMode);
+
+            // Form submission
+            $('#spam-form').on('submit', function(e) {
+                e.preventDefault();
+                
+                const button = $(this).find('button');
+                const buttonText = button.find('.button-text');
+                const loading = button.find('.loading');
+                
+                button.prop('disabled', true);
+                buttonText.hide();
+                loading.show();
+                
+                $.ajax({
+                    url: '/predict',
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        const resultDiv = $('#result');
+                        
+                        if (response.error) {
+                            resultDiv.html(`
+                                <div class="error">
+                                    <strong>${translations[currentLang].error}:</strong> ${response.error}
+                                </div>
+                            `);
+                        } else {
+                            const predictionText = response.prediction === 'SPAM' ? 
+                                translations[currentLang].spam : 
+                                translations[currentLang].ham;
+                            
+                            resultDiv.html(`
+                                <div class="${response.prediction.toLowerCase()}">
+                                    <strong>${translations[currentLang].prediction}:</strong> ${predictionText}<br>
+                                    <strong>${translations[currentLang].confidence}:</strong> ${response.probability}
+                                    <div class="confidence-bar">
+                                        <div class="confidence-fill"></div>
+                                    </div>
+                                </div>
+                            `);
+                            
+                            const percentage = parseFloat(response.probability);
+                            resultDiv.find('.confidence-fill').css('width', percentage + '%');
+                        }
+                        
+                        resultDiv.fadeIn(400);
+                    },
+                    error: function() {
+                        $('#result').html(`
+                            <div class="error">
+                                <strong>${translations[currentLang].error}:</strong> 
+                                ${translations[currentLang].errorMessage}
+                            </div>
+                        `).fadeIn(400);
+                    },
+                    complete: function() {
+                        button.prop('disabled', false);
+                        loading.hide();
+                        buttonText.show();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
